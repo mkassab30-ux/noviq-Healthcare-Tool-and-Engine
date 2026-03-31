@@ -1,49 +1,52 @@
-# ===========================
-# NOVIQ Engine — .gitignore
-# ===========================
-
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-*.pyo
-*.egg-info/
-dist/
-build/
-.eggs/
-venv/
+*$py.class
+
+# Virtual environments
 .venv/
+venv/
+ENV/
 env/
+.vscode/.env
 
-# Environment — NEVER commit
+# Environment variables
 .env
-secrets.yaml
-config/keys.yaml
-*.key
+.env.local
+.env.*.local
 
-# Real patient data — NEVER commit
-data/real-cases/
-data/anonymized-cases/*.json
-data/anonymized-cases/*.csv
-!data/anonymized-cases/.gitkeep
-
-# Vector store
-qdrant_storage/
-.qdrant/
-
-# Large PDFs (add manually to knowledge-base)
-knowledge-base/guidelines/*.pdf
-knowledge-base/payer-rules/**/*.pdf
-
-# IDE
+# IDE & Editor files
 .vscode/
 .idea/
 *.swp
+*.swo
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# Logs & tests
-logs/
+# Logs
 *.log
-.pytest_cache/
-.coverage
-htmlcov/
+logs/
+
+# Database & Vector stores (local)
+*.db
+chroma/
+weaviate/
+qdrant/
+
+# Notebooks
+*.ipynb
+
+# Temporary files
+*.tmp
+*.temp
+
+# Project specific
+data/anonymized-cases/
+knowledge-base/
