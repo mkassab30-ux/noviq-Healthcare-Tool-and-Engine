@@ -1,321 +1,302 @@
-# NOVIQ Engine
-### AI-Powered Clinical Coding Intelligence — Upstream Revenue Cycle Optimization
+# NOVIQ Engine — Clinical Coding Intelligence Platform
 
-> Built by **Noviq Health** | Founded by Dr. Mohamed Kassab, MD
+**AR-DRG V11.0 · ICD-10-AM Twelfth Edition · FHIR R4 Compatible**
 
----
+NOVIQ Engine is an AI-powered clinical coding intelligence platform that reads a patient's complete EHR before any claim is submitted and produces accurate, ethically justified medical codes (ICD-10-AM, ACHI, AR-DRG), protecting against both upcoding and revenue leakage simultaneously.
 
-## What is NOVIQ Engine?
-
-NOVIQ Engine reads a patient's **complete EHR before any claim is submitted**, and produces accurate, ethical, fully justified medical codes — ICD-10-AM, ACHI, AR-DRG.
-
-It is not a billing tool. It is a **Clinical Truth Preservation Engine.**
-
-The surgeon who documents well carries less risk.  
-NOVIQ makes sure that truth is fully captured in code.
+The engine implements the full **AR-DRG V11.0 Chain of Truth** — the official IHACPA pipeline from diagnosis exclusions through ECCS computation to final DRG assignment — as a clean, modular, JSON-In/JSON-Out Python system ready to plug into any hospital HMIS via FHIR R4 or HL7 v2.
 
 ---
 
-## Core Principles
-
-| Principle | Description |
-|-----------|-------------|
-| **Zero Upcoding** | Medical ethics is non-negotiable |
-| **Zero Revenue Leakage** | Every documented complexity must be captured |
-| **Score-Based Coding** | Every diagnosis earns its code through evidence (ACS 0001/0002) |
-| **Full Provenance** | Every code cites its source from the RAG knowledge base |
-| **Physician Always Decides** | Engine suggests, physician approves before submission |
-
----
-
-## System Architecture
+## Architecture
 
 ```
-Hospital HMIS / EHR
-        │
-  New document uploaded
-        │
-        ▼
-┌──────────────────────────┐
-│    NOVIQ CONNECTOR       │
-│  FHIR R4 / HL7 v2 / DB  │
-│  → Unified JSON Format   │
-└───────────┬──────────────┘
-            │
-            ▼
-┌──────────────────────────┐
-│   DOCUMENT CLASSIFIER    │
-│  - Initial Medical Report│
-│  - Admission Report      │
-│  - Progress Notes        │
-│  - Operation Notes       │
-│  - Nursing Notes         │
-│  - Discharge Summary     │
-└───────────┬──────────────┘
-            │
-            ▼
-┌────────────────────────────────────────────┐
-│         SEQUENTIAL READING ENGINE          │
-│                                            │
-│  Doc 1-2: Initial + Admission Report       │
-│  → Candidate Principal Diagnosis           │
-│  → Admission reason captured               │
-│                                            │
-│  Doc 3: Progress Notes (daily)             │
-│  → ACS 0002 scoring per new condition      │
-│  → Management changes tracked             │
-│  → Investigations specifically ordered?    │
-│                                            │
-│  Doc 4: Operation Notes                    │
-│  → Base ACHI code detected                 │
-│  → Keyword scan → Modifier assigned        │
-│  → "New procedure or normal step?"         │
-│  → Complications → ICD flags               │
-│                                            │
-│  Doc 5: Nursing Notes                      │
-│  → Increased clinical care evidence        │
-│  → New observations flagged               │
-│                                            │
-│  Doc 6: Discharge Summary                  │
-│  → Cross-validation only                  │
-│  → Score is source of truth, not DS        │
-└───────────┬────────────────────────────────┘
-            │
-            ▼
-┌────────────────────────────────────────────┐
-│           ACS SCORING ENGINE               │
-│                                            │
-│  ACS 0001 — Principal Diagnosis            │
-│  ├── Confirmed by investigation    +3      │
-│  ├── Documented by physician       +2      │
-│  └── Admission reason              +2      │
-│                                            │
-│  ACS 0002 — Additional Diagnoses           │
-│  ├── C1: Therapeutic treatment     +3      │
-│  ├── C2: Diagnostic procedure      +3      │
-│  └── C3: Increased clinical care   +2      │
-│                                            │
-│  Score ≥ 5  → ✅ CODE IT                  │
-│  Score 3-4  → ⚠️  PHYSICIAN REVIEW        │
-│  Score < 3  → ❌ DO NOT CODE              │
-└───────────┬────────────────────────────────┘
-            │
-            ▼
-┌────────────────────────────────────────────┐
-│          INTELLIGENCE LAYER                │
-│                                            │
-│  Agent 1: Intent                           │
-│  → Case type (1/2/3/4)                     │
-│  → Elective / Emergency                    │
-│  → Specialty confirmed                     │
-│                                            │
-│  Agent 2: Medical Logic                    │
-│  → RAG: Keyword Dictionaries               │
-│  → Two-part code: Base (00000) + (-00)     │
-│  → ACHI code assembly                      │
-│  → Bundling rules enforced                 │
-│                                            │
-│  Agent 3: AR-DRG Engine                    │
-│  → DCL calculated from all scored ICDs     │
-│  → DRG weight assigned                     │
-│  → Revenue estimate calculated             │
-│                                            │
-│  Agent 4: Critique & Ethics                │
-│  → Anti-upcoding guard                     │
-│  → Anti-leakage guard                      │
-│  → ACS 0001/0002 compliance verified       │
-│  → Confidence score assigned               │
-│  → Human review triggered if needed        │
-└───────────┬────────────────────────────────┘
-            │
-            ▼
-┌────────────────────────────────────────────┐
-│       PRE-SUBMISSION OUTPUT PACKAGE        │
-│                                            │
-│  Principal ICD-10-AM  [Score: X/7]         │
-│  Secondary ICDs       [Score per each]     │
-│  ACHI Code            [Base-Modifier]      │
-│  AR-DRG Code + Weight + DCL                │
-│  Justification per code (RAG cited)        │
-│  Documentation gaps flagged                │
-│  Revenue estimate                          │
-│  Confidence: [0-100%]                      │
-│  Physician approval: [ ]                   │
-└───────────┬────────────────────────────────┘
-            │
-      Physician approves
-            │
-            ▼
-┌────────────────────────────────────────────┐
-│          SUBMISSION LAYER                  │
-│  → NPHIES (KSA)                            │
-│  → UHI Portal (Egypt)                      │
-│  → Insurance Company API                   │
-└────────────────────────────────────────────┘
+EHR Documents (FHIR R4 / HL7 v2)
+         │
+         ▼
+┌─────────────────────────────────────────────┐
+│            NOVIQ Engine                     │
+│                                             │
+│  ┌─────────────────┐  ┌──────────────────┐  │
+│  │  ACS Scoring    │  │  AR-DRG Grouper  │  │
+│  │  Engine         │→ │  (V11.0)         │  │
+│  │  (ACS 0001/0002)│  │  5-step pipeline │  │
+│  └─────────────────┘  └──────────────────┘  │
+│           │                    │            │
+│           ▼                    ▼            │
+│  ┌─────────────────────────────────────┐    │
+│  │      Validation Rules Module        │    │
+│  │  DCL exclusions · Upcoding risk     │    │
+│  │  ECCS · COVID routing · FHIR out    │    │
+│  └─────────────────────────────────────┘    │
+│                     │                       │
+└─────────────────────┼───────────────────────┘
+                      ▼
+         Physician Approval Gate
+         (non-negotiable before submission)
+                      │
+                      ▼
+         NPHIES / UHI Portal / Payer
 ```
 
----
+### Design principles
 
-## EHR Document Hierarchy
-
-| Document | Role in Engine | Priority |
-|----------|---------------|----------|
-| Initial Medical Report | Principal diagnosis candidate | High |
-| Admission Report | Patient ID + context | Medium |
-| Progress Notes | ACS 0002 scoring source | High |
-| Operation Notes | ACHI code source | Critical |
-| Nursing Notes | ACS 0002 C3 (Increased care) | Medium |
-| Discharge Summary | Cross-validation only | Low |
-
-> **Note:** The ACS Score is the source of truth — not the Discharge Summary.
-> A diagnosis missed in the DS but scored ≥5 from other documents will still be coded.
+- **JSON-In / JSON-Out** — every module accepts a `PatientEpisode` dict and returns a typed result dict. Zero UI coupling. Zero DB calls inside modules.
+- **FastAPI-ready** — any module wraps in 3 lines: `@app.post("/validate") async def validate(ep: dict) -> dict: return validate_episode(ep)`
+- **Physician approval gate** — non-negotiable architectural requirement. No claim exits without physician sign-off.
+- **Clinical Truth Preservation** — anchored to ACS score, not the Discharge Summary. Two-sided protection: flags both upcoding risk and revenue leakage.
+- **Version-aware** — immutable KB per AR-DRG version. V12.0 (July 2026) is a config swap, not a code rewrite.
 
 ---
 
-## ACHI Two-Part Code Logic
+## Repository structure
 
 ```
-Every ACHI code has two parts:
-
-    30445  -  00
-      │         │
-  Base Code   Modifier
-      │         │
- Detected     Detected
- from OT Note from Keywords
-
-Engine Flow:
-  Step 1 → Read OT Note → Detect Base Code
-  Step 2 → Scan Keywords → Assign Modifier
-  Step 3 → Assemble: 30445-00
-  Step 4 → Ethics check → Leakage? Upcoding?
-  Step 5 → Revenue impact calculated
-```
-
----
-
-## Case Classification
-
-| Type | Description | Volume | Engine Mode |
-|------|-------------|--------|-------------|
-| **Type 1** | Straightforward — clear Dx + agreed management | 40-50% | Auto-code (high confidence) |
-| **Type 2** | Single surgical procedure — AR-DRG logic | 25-30% | Auto-code + modifier logic |
-| **Type 3** | Complex multi-procedure — high risk | 5-10% | Suggest + mandatory review |
-| **Type 4** | Long stay — ICU, oncology, daily coding | ~10% | Daily assistant, physician-in-loop |
-
----
-
-## Tech Stack
-
-| Component | Technology | Reason |
-|-----------|-----------|--------|
-| Agent Orchestration | LangGraph | Sequential control flow |
-| RAG Framework | LlamaIndex | Native provenance/citation |
-| Vector Store | Qdrant | Fast, local or cloud |
-| LLM | Claude API (claude-sonnet-4-20250514) | Best medical reasoning |
-| Retrieval | Hybrid: Dense + BM25 + Knowledge Graph | Medical term precision |
-| EHR Integration | FHIR R4 / HL7 v2 | Universal compatibility |
-| Backend | Python 3.11+ / FastAPI | |
-
----
-
-## Knowledge Base Sources
-
-| Source | Purpose | Status |
-|--------|---------|--------|
-| ACS 0002 — 11th Edition (WA Health) | Additional diagnosis rules | ✅ Loaded |
-| ACHI Chronicle — 12th Edition (IHACPA) | Procedure codes | ✅ Loaded |
-| AR-DRG Guidelines | DRG weight + DCL calculation | ⏳ Pending |
-| Egypt UHI Payer Rules | Local coding rules | ⏳ Pending |
-| KSA CCHI / NPHIES Rules | KSA payer rules | ⏳ Pending |
-| Dr. Kassab Keyword Dictionaries | Procedure-level medical logic | 🔄 In Progress |
-
----
-
-## Repository Structure
-
-```
-noviq-engine/
-├── README.md
-├── requirements.txt
-├── .env.template
-├── .gitignore
-├── setup_github.sh
+NOVIQ-Clinical-Coding-Intelligence-Platform/
 │
-├── knowledge-base/
-│   ├── guidelines/           # ACS PDFs, ACHI PDFs
-│   └── payer-rules/
-│       ├── egypt-uhi/
-│       ├── ksa-cchi/
-│       └── uae-dha/
+├── engine/
+│   ├── grouper.py                    # AR-DRG V11.0 grouper — 5-step pipeline
+│   ├── validation_rules.py           # DCL exclusion module + ECCS utilities
+│   └── statistical_simulation.py    # RID, L3H3 trimming, threshold simulation
+│
+├── knowledge_base/
+│   ├── ar_drg_kb_seed_v11_new_adrgs.json   # B08, F25, G13 seed data
+│   ├── dcl_exclusions.json                  # Appendix C exclusion KB
+│   └── keyword_dictionary_v11_new_adrgs.json # ACHI trigger codes
 │
 ├── docs/
-│   ├── architecture/         # System design docs
-│   ├── templates/            # Procedure documentation template
-│   └── medical-logic/
-│       └── general-surgery/
-│           ├── type1-straightforward/
-│           ├── type2-single-procedure/
-│           ├── type3-complex/
-│           └── type4-long-stay/
+│   └── GROUPER_PSEUDOCODE.md         # Approved pseudocode — Phase 3 Deliverable 3.1
 │
-├── src/
-│   ├── connector/            # FHIR / HL7 adapters
-│   ├── ingestion/            # OCR, classifier, entity extraction
-│   ├── rag/                  # RAG pipeline (indexer + retriever)
-│   ├── intelligence-layer/   # 4 agents
-│   ├── scoring/              # ACS 0001/0002 scoring engine ✅
-│   └── output/               # Output formatting + provenance
+├── tests/
+│   └── test_grouper.py               # 18-assertion test suite — ALL GREEN
 │
-├── data/
-│   ├── keyword-dictionaries/
-│   │   └── general-surgery/  # Per-procedure keyword → ACHI mapping
-│   ├── synthetic-cases/      # Training cases by Dr. Kassab
-│   └── anonymized-cases/     # Real de-identified cases
-│
-└── tests/
-    ├── type1/
-    ├── type2/
-    └── type3/
+└── README.md
 ```
 
 ---
 
-## MVP Success Metrics — General Surgery
+## Modules
 
-| Metric | Target |
-|--------|--------|
-| Type 1 coding accuracy | ≥ 90% |
-| Type 2 coding accuracy | ≥ 85% |
-| Type 3 coding accuracy | ≥ 80% (with human review) |
-| Upcoding violations | 0% |
-| Provenance on every code | 100% |
-| Response time | < 10 seconds |
-| Validated test cases | 200+ |
+### `engine/grouper.py`
+The AR-DRG V11.0 grouper. Single entry point: `ARDRGGrouper.group_episode(episode_dict) → dict`.
+
+**5-step pipeline:**
+
+| Step | Name | Key logic |
+|------|------|-----------|
+| 1 | Demographic & Clinical Edits | Validates all inputs. Sex conflict → FLAG only (V11.0 change). Strips invalid codes non-fatally. Exits to 960Z / 961Z / 963Z on failure. |
+| 2 | Pre-MDC Override | Checks for very high-cost intervention triggers that bypass MDC assignment. |
+| 3 | MDC Assignment | Routes PDX to Major Diagnostic Category. `R10.2` is the only remaining sex-routing PDX in V11.0. |
+| 4 | ADRG Assignment | Walks intervention hierarchy positionally. First ACHI trigger match wins. Falls back to medical partition then ADRG 801. |
+| 5 | DRG Assignment | Applies Appendix C exclusions → DCL lookup → ECCS (0.86 decay) → threshold comparison → suffix A/B/C/D/Z. |
+
+**V11.0 confirmed hierarchy positions (Final Report Table 3):**
+- MDC 01: B02 (pos 1) > B08 (pos 2) — ECR episode with cranial ACHI routes to B02
+- MDC 05: F25 (pos 13) — all cardiac valve surgery ADRGs rank above
+- MDC 06: G13 (pos 1) — wins over all other MDC 06 intervention ADRGs
+
+```python
+from engine.grouper import ARDRGGrouper
+
+grouper = ARDRGGrouper()
+result  = grouper.group_episode({
+    "episode_id":    "EP-001",
+    "patient_age":   58,
+    "patient_sex":   "Female",
+    "pdx":           "C48.1",
+    "adx":           ["E11.9", "E61.1"],
+    "achi_codes":    ["96211-00"],
+    "los_days":      12,
+    "same_day":      False,
+    "separation_mode": "discharge_home",
+    "care_type":     "01"
+})
+# result["ar_drg_code"]  → "G13Z"
+# result["eccs"]         → 0.0  (DCL table stub — see open items)
+# result["ar_drg_version"] → "V11.0"
+```
 
 ---
 
-## Contribution
+### `engine/validation_rules.py`
+DCL exclusion module. Validates all ICD-10-AM codes in a `PatientEpisode` against the AR-DRG V11.0 exclusion Knowledge Base. Flags upcoding risk before grouping.
 
-| Area | Owner |
-|------|-------|
-| Medical Logic, Clinical Rules, Keyword Dictionaries | Dr. Mohamed Kassab — Noviq Health |
-| Technical Architecture, Code, RAG | NOVIQ Engineering |
-| Validation & QA | Both |
+**Three public functions:**
+
+```python
+from engine.validation_rules import validate_episode, validate_dcl_eligibility, get_exclusion_reason
+
+# Primary entry point
+result = validate_episode(episode_dict)
+# result["validation_status"]          → "WARN"
+# result["summary"]["upcoding_risk_count"] → 2
+# result["excluded_codes"][0]["code"]  → "E61.1"
+# result["covid_routing"]["target_adrg"] → "T63"
+
+# Single-code check
+check = validate_dcl_eligibility("E61.1", adrg="G13")
+# check["eligible"] → False
+# check["upcoding_risk"] → True
+
+# Plain-language reason
+reason = get_exclusion_reason("D89.82")
+# reason["reason"] → "Reflects a background clinical state..."
+```
+
+**ECCS utilities (confirmed from Technical Specifications Section 4.5):**
+
+```python
+from engine.validation_rules import compute_eccs, compute_eccs_with_trace
+
+eccs  = compute_eccs([4, 3, 2, 1, 0])       # → 8.6953
+trace = compute_eccs_with_trace([4, 3, 2, 1])
+# trace["formula_string"] → "4×(0.86)^0 + 3×(0.86)^1 + ..."
+```
 
 ---
 
-## Phase Roadmap
+### `engine/statistical_simulation.py`
+Development/validation module. Not called by the runtime grouper. Use for threshold simulation, RID calculation, and outlier trimming when real cost data is available.
 
-| Phase | Focus | Status |
-|-------|-------|--------|
-| **Phase 0** | Foundation, Architecture, GitHub | ✅ Complete |
-| **Phase 1** | Type 1 — Straightforward (General Surgery) | 🔄 Next |
-| **Phase 2** | Type 2 — Single Procedure + AR-DRG | ⏳ Pending |
-| **Phase 3** | Type 3 — Complex Multi-Procedure | ⏳ Pending |
-| **Phase 4** | Type 4 — Long Stay (post-MVP) | ⏳ Pending |
+```python
+from engine.statistical_simulation import (
+    compute_rid,
+    apply_l3h3_trim,
+    simulate_eccs_thresholds,
+    modified_park_test
+)
+
+# Simulate optimal ECCS threshold for an ADRG
+result = simulate_eccs_thresholds(eccs_values, costs)
+# result["best_threshold"] → optimal cutoff
+# result["rid_gain_pct"]   → RID improvement vs unsplit
+
+# L3H3 inlier/outlier classification
+df = apply_l3h3_trim(df, drg_col="ar_drg", los_col="los_days")
+```
 
 ---
 
-*NOVIQ Engine — Clinical Truth, Preserved.*
-*Noviq Health © 2025*
+## Knowledge Base
+
+### `knowledge_base/ar_drg_kb_seed_v11_new_adrgs.json`
+Seed data for the three new ADRGs introduced in V11.0, plus global V11.0 flags.
+
+| ADRG | Description | MDC | Split | Hierarchy pos | ECCS threshold |
+|------|-------------|-----|-------|---------------|----------------|
+| B08 | Endovascular Clot Retrieval | 01 | A/B | 2 | ≥ 3.0 ✓ |
+| F25 | Percutaneous Heart Valve Replacement with Bioprosthesis | 05 | A/B | 13 | **null** ⚠ |
+| G13 | Peritonectomy for Gastrointestinal Disorders | 06 | Z (unsplit) | 1 | N/A ✓ |
+
+Also encodes: Chain of Truth pipeline reference · FHIR output schema · R-code exclusion logic · DRG splitting principles · confirmed ECCS thresholds (B70A=4.0, B08A=3.0, V62=3.5) · versioning with V12.0 warning · Errata 1 (2023-04-01) applied.
+
+### `knowledge_base/dcl_exclusions.json`
+Appendix C exclusion Knowledge Base. Unconditional (Table C1) and conditional (Table C2) exclusions for the ECC Model. Currently seeded with 7 confirmed unconditional codes from V11.0 Final Report Appendix A Table A5, plus all 4 COVID-19 DCL inclusion codes.
+
+### `knowledge_base/keyword_dictionary_v11_new_adrgs.json`
+ACHI trigger and modifier codes for B08, F25, and G13, sourced from V11.0 Final Report Appendix A. Includes clinical context, device brand keyword hints for F25 (TAVI/TAVR), and valvuloplasty exclusion terms.
+
+---
+
+## ECCS formula
+
+Confirmed from AR-DRG V11.0 Technical Specifications, Section 4.5:
+
+```
+ECCS(e) = Σ [ DCL(xᵢ, A) × (0.86)^(i-1) ]   for i = 1..n
+
+where:
+  DCLs sorted descending before summation
+  0.86 = global decay factor (tested range 0.83–0.88; V10.0 and V11.0)
+  Principal diagnosis IS included
+  DCL range: 0–5 integer, ADRG-specific, pre-computed (not derived at runtime)
+```
+
+**Verified example:**
+```
+DCLs = [4, 3, 2, 1, 0]
+ECCS = 4×1 + 3×0.86 + 2×0.7396 + 1×0.636056 + 0 = 8.695
+```
+
+---
+
+## Test suite
+
+18 assertions, all passing:
+
+| # | Test | Result |
+|---|------|--------|
+| T1 | G13Z assigned for peritonectomy | PASS |
+| T1 | E61.1 (iron deficiency) excluded — upcoding risk | PASS |
+| T1 | Z59.0 (homelessness) excluded — socioeconomic | PASS |
+| T1 | `errata_applied` present on every output | PASS |
+| T1 | `ar_drg_version=V11.0` on every output | PASS |
+| T2 | B08 assigned for ECR (ACHI 35414-00) | PASS |
+| T2 | B08B fallback when DCL table is stub (ECCS=0) | PASS |
+| T2 | `threshold_used=None` on fallback suffix | PASS |
+| T2 | partition=intervention | PASS |
+| T3 | 961Z for invalid PDX | PASS |
+| T4 | 960Z for missing PDX | PASS |
+| T5 | R10.2 Male → MDC 12 | PASS |
+| T6 | R10.2 Female → MDC 13 | PASS |
+| T7 | F25 raises `KnowledgeBaseIncompleteError` (null threshold) | PASS |
+| T8 | ECCS formula [4,3,2,1,0] = 8.6953 | PASS |
+| T9 | D89.82 (immunocompromised status) excluded | PASS |
+| T10 | All FHIR output fields present | PASS |
+| T10 | `ar_drg_version=V11.0` confirmed | PASS |
+
+---
+
+## Open items (purchase-blocked)
+
+Three items require the AR-DRG V11.0 Definitions Manual (Volumes 1–3, Lane Print, `ar-drg.laneprint.com.au`):
+
+| Item | Impact | Status |
+|------|--------|--------|
+| F25 ECCS threshold | F25A/F25B assignment blocked — `KnowledgeBaseIncompleteError` raised | Populate `eccs_threshold.value` in KB once obtained |
+| Full DCL lookup table (~6.8M pairs) | All ECCS values currently 0.0 (stub) — DRG suffix defaults to lowest complexity | Load `dcl_table.json` via `DCLTable(table_path=...)` |
+| Appendix C full Table C1+C2 | 7 of 47 unconditional exclusions confirmed; conditional exclusions empty | Add remaining codes to `dcl_exclusions.json` — no code changes required |
+
+The production gate (`KnowledgeBaseIncompleteError`) prevents any incorrect DRG assignment from reaching the physician review layer. The engine is safe to run in stub mode.
+
+---
+
+## Build history
+
+| Phase | Deliverables | Status |
+|-------|-------------|--------|
+| **Phase 0** | ACS Scoring Engine · Folder structure · README · Keyword Dictionary (Lap Chole) · AR-DRG V11.0 JSON schema | ✅ Complete |
+| **Phase 1** | `keyword_dictionary_v11_new_adrgs.json` · `ar_drg_kb_seed_v11_new_adrgs.json` · B08/F25/G13 hierarchy + split corrections | ✅ Complete |
+| **Phase 2** | `dcl_exclusions.json` · `validation_rules.py` · ECCS utilities · Statistical simulation module | ✅ Complete |
+| **Phase 3** | `GROUPER_PSEUDOCODE.md` · `grouper.py` · 18-assertion test suite | ✅ Complete |
+| **Phase 4** | `models.py` · ACS Engine → Grouper handoff · Physician approval gate · `CodingSuggestion` with provenance | 🔄 Next |
+
+---
+
+## V12.0 readiness
+
+AR-DRG V12.0 is proposed to go live **1 July 2026**. The engine is version-aware by design:
+- Each KB version is immutable (never modified in-place)
+- `ar_drg_version` field on every output record
+- `errata_applied[]` tracked per output
+- Upgrade path: create `ar_drg_kb_seed_v12_new_adrgs.json`, instantiate `ARDRGGrouper(kb_path=v12_path)`
+
+---
+
+## Source authority
+
+| Document | Access |
+|----------|--------|
+| AR-DRG V11.0 Final Report (January 2023) | Free — ihacpa.gov.au |
+| AR-DRG V11.0 Technical Specifications | Free — ihacpa.gov.au |
+| AR-DRG V11.0 Definitions Manual (Volumes 1–3) | Purchase — ar-drg.laneprint.com.au |
+| ICD-10-AM/ACHI/ACS Twelfth Edition | Purchase — ihacpa.gov.au |
+| ACS 0001/0002 Australian Coding Standards | Purchase — ihacpa.gov.au |
+
+---
+
+## Founder
+
+**Dr. Mohamed Kassab** — General Surgeon · Healthcare Operations · Insurance/TPA (MetLife, MedNet/Munich Re) · Python · Power BI · Power Automate
+
+*NOVIQ Engine is built to close the gap between clinical documentation and revenue integrity — preserving clinical truth at the point of coding, not after the claim is rejected.*
